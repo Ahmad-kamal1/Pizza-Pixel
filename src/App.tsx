@@ -11,6 +11,7 @@ import AdminLayout from "./admin/AdminLayout";
 import AdminDashboard from "./admin/pages/AdminDashboard";
 import AdminItems from "./admin/pages/AdminItems";
 import AdminCategories from "./admin/pages/AdminCategories";
+import AdminBilling from "./admin/pages/AdminBilling";
 import { AdminProvider } from "./context/AdminContext";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,7 @@ const App = () => (
               <Route index element={<AdminDashboard />} />
               <Route path="items" element={<AdminItems />} />
               <Route path="categories" element={<AdminCategories />} />
+              <Route path="billing" element={<AdminBilling />} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

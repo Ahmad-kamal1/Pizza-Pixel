@@ -10,8 +10,11 @@ export interface Category {
 
 export interface Order {
     id: number;
+    invoiceNumber: string;
     customer: string;
+    customerPhone?: string;
     items: string[];
+    orderItems: { name: string; qty: number; unitPrice: number }[];
     total: number;
     status: "pending" | "completed" | "cancelled";
     time: Date;
@@ -36,12 +39,25 @@ const defaultCategories: Category[] = [
 
 const generateOrder = (id: number): Order => {
     const customers = ["Ali Hassan", "Sara Khan", "Omar Sheikh", "Fatima Malik", "Zaid Ahmad"];
-    const items = ["Margherita", "Pepperoni", "BBQ Chicken", "Garlic Bread", "Lemonade"];
+    const itemsList = [
+        { name: "Margherita", price: 12.99 },
+        { name: "Pepperoni", price: 14.99 },
+        { name: "BBQ Chicken", price: 15.99 },
+        { name: "Garlic Bread", price: 6.99 },
+        { name: "Lemonade", price: 4.99 },
+    ];
+
+    const randomItem = itemsList[Math.floor(Math.random() * itemsList.length)];
+    const qty = Math.floor(Math.random() * 2) + 1;
+    const total = parseFloat((randomItem.price * qty).toFixed(2));
+
     return {
         id,
+        invoiceNumber: `INV-${id}`,
         customer: customers[Math.floor(Math.random() * customers.length)],
-        items: [items[Math.floor(Math.random() * items.length)]],
-        total: parseFloat((Math.random() * 30 + 10).toFixed(2)),
+        items: [randomItem.name],
+        orderItems: [{ name: randomItem.name, qty, unitPrice: randomItem.price }],
+        total,
         status: Math.random() > 0.4 ? "completed" : "pending",
         time: new Date(),
     };
@@ -70,6 +86,8 @@ interface AdminContextType {
 
     // Orders
     orders: Order[];
+    addManualOrder: (order: Omit<Order, "id" | "invoiceNumber" | "time">) => void;
+    updateOrderStatus: (id: number, status: Order["status"]) => void;
 
     // Notifications
     notifications: Notification[];
@@ -138,6 +156,23 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     const deleteCategory = (id: number) =>
         setCategories(prev => prev.filter(c => c.id !== id));
 
+    // Orders Actions
+    const addManualOrder = (orderData: Omit<Order, "id" | "invoiceNumber" | "time">) => {
+        const id = nextOrderId;
+        const newOrder: Order = {
+            ...orderData,
+            id,
+            invoiceNumber: `INV-${id}`,
+            time: new Date(),
+        };
+        setOrders(prev => [newOrder, ...prev]);
+        setNextOrderId(prev => prev + 1);
+    };
+
+    const updateOrderStatus = (id: number, status: Order["status"]) => {
+        setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o));
+    };
+
     const completedOrders = orders.filter(o => o.status === "completed").length;
     const pendingOrders = orders.filter(o => o.status === "pending").length;
     const todaySales = orders.filter(o => {
@@ -163,6 +198,8 @@ export function AdminProvider({ children }: { children: ReactNode }) {
                 editCategory,
                 deleteCategory,
                 orders,
+                addManualOrder,
+                updateOrderStatus,
                 notifications,
                 unreadCount,
                 markAllRead,

@@ -91,3 +91,45 @@
     @apply transition-transform duration-300 hover:scale-105;
   }
 }
+
+@media print {
+
+  /* Hide everything by default */
+  body * {
+    visibility: hidden;
+  }
+
+  /* Show the invoice modal and its children */
+  [role="dialog"],
+  [role="dialog"] * {
+    visibility: visible;
+  }
+
+  /* Position the modal content at the top left of the page */
+  [role="dialog"] {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    border: none;
+    box-shadow: none;
+    background: white !important;
+  }
+
+  /* Hide modal buttons and other non-invoice elements */
+  .print\:hidden,
+  button,
+  [role="dialog"]>button {
+    display: none !important;
+  }
+
+  /* Ensure text is black for clarity */
+  * {
+    color: black !important;
+    background: transparent !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

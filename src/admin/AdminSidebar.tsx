@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, Package, FolderOpen, ChevronLeft, ChevronRight, Pizza } from "lucide-react";
+import { LayoutDashboard, Package, FolderOpen, ChevronLeft, ChevronRight, Pizza, Receipt } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface AdminSidebarProps {
@@ -11,6 +11,7 @@ const navItems = [
     { to: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true },
     { to: "/admin/items", label: "Items", icon: Package },
     { to: "/admin/categories", label: "Categories", icon: FolderOpen },
+    { to: "/admin/billing", label: "Billing", icon: Receipt },
 ];
 
 const AdminSidebar = ({ isOpen, onToggle }: AdminSidebarProps) => {
