@@ -7,6 +7,7 @@ interface CurrentUser {
   firstName: string;
   lastName: string;
   email: string;
+  avatar?: string;
 }
 
 const Header = () => {
@@ -72,10 +73,23 @@ const Header = () => {
 
           {currentUser ? (
             <>
-              <div className="hidden sm:flex items-center gap-2 text-sm font-semibold text-foreground">
-                <User className="h-4 w-4 text-primary" />
+              <button
+                onClick={() => navigate("/profile")}
+                className="hidden sm:flex items-center gap-2 text-sm font-semibold text-foreground hover:text-primary transition-colors"
+                title="My Profile"
+              >
+                {currentUser.avatar ? (
+                  <img
+                    src={currentUser.avatar}
+                    alt="avatar"
+                    className="h-7 w-7 rounded-full object-cover border border-border"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                  />
+                ) : (
+                  <User className="h-4 w-4 text-primary" />
+                )}
                 {currentUser.firstName} {currentUser.lastName}
-              </div>
+              </button>
               <Button
                 variant="ghost"
                 className="text-foreground hover:text-destructive gap-1"

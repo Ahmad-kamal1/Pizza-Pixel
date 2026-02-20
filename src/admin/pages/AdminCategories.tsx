@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useAdmin, Category } from "@/context/AdminContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,9 +21,9 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, FolderOpen } from "lucide-react";
+import { Plus, Pencil, Trash2, FolderOpen, Link2, Upload } from "lucide-react";
 
-const emptyForm = { name: "", emoji: "🍕", description: "" };
+const emptyForm = { name: "", emoji: "🍕", description: "", image: "" };
 
 const EMOJI_PRESETS = ["🍕", "🍔", "🌯", "🥪", "🥤", "🍰", "🍟", "🍜", "🥗", "🍣", "🫔", "🧁"];
 
@@ -34,6 +34,26 @@ const AdminCategories = () => {
     const [editing, setEditing] = useState<Category | null>(null);
     const [form, setForm] = useState(emptyForm);
     const [formError, setFormError] = useState("");
+    const [imageTab, setImageTab] = useState<"url" | "upload">("url");
+    const [imagePreview, setImagePreview] = useState("");
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleImageUrlChange = (url: string) => {
+        setForm((f) => ({ ...f, image: url }));
+        setImagePreview(url);
+    };
+
+    const handleImageFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            const result = reader.result as string;
+            setImagePreview(result);
+            setForm((f) => ({ ...f, image: result }));
+        };
+        reader.readAsDataURL(file);
+    };
 
     const getItemCount = (catName: string) =>
         items.filter((i) => (i as any).category === catName).length;
@@ -42,13 +62,17 @@ const AdminCategories = () => {
         setEditing(null);
         setForm(emptyForm);
         setFormError("");
+        setImagePreview("");
+        setImageTab("url");
         setFormOpen(true);
     };
 
     const openEdit = (cat: Category) => {
         setEditing(cat);
-        setForm({ name: cat.name, emoji: cat.emoji, description: cat.description });
+        setForm({ name: cat.name, emoji: cat.emoji, description: cat.description, image: (cat as any).image ?? "" });
         setFormError("");
+        setImagePreview((cat as any).image ?? "");
+        setImageTab("url");
         setFormOpen(true);
     };
 
@@ -61,6 +85,7 @@ const AdminCategories = () => {
             name: form.name.trim(),
             emoji: form.emoji || "🍕",
             description: form.description.trim(),
+            image: imagePreview,
         };
         if (editing) {
             editCategory({ ...editing, ...payload });
@@ -257,8 +282,8 @@ const AdminCategories = () => {
                                         type="button"
                                         onClick={() => setForm({ ...form, emoji: e })}
                                         className={`h-9 w-9 rounded-xl text-xl transition-all ${form.emoji === e
-                                                ? "bg-primary/20 ring-2 ring-primary"
-                                                : "bg-muted hover:bg-muted/80"
+                                            ? "bg-primary/20 ring-2 ring-primary"
+                                            : "bg-muted hover:bg-muted/80"
                                             }`}
                                     >
                                         {e}
@@ -281,6 +306,77 @@ const AdminCategories = () => {
                                 value={form.name}
                                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                             />
+                        </div>
+                        {/* Dual image picker */}
+                        <div>
+                            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                                Category Image (optional)
+                            </label>
+                            <div className="flex gap-2 mb-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setImageTab("url")}
+                                    className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${imageTab === "url"
+                                        ? "bg-primary text-primary-foreground"
+                                        : "bg-muted text-muted-foreground hover:text-foreground"
+                                        }`}
+                                >
+                                    <Link2 className="h-3.5 w-3.5" /> Via URL
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setImageTab("upload")}
+                                    className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${imageTab === "upload"
+                                        ? "bg-primary text-primary-foreground"
+                                        : "bg-muted text-muted-foreground hover:text-foreground"
+                                        }`}
+                                >
+                                    <Upload className="h-3.5 w-3.5" /> Upload File
+                                </button>
+                            </div>
+
+                            {imageTab === "url" ? (
+                                <Input
+                                    placeholder="https://example.com/category.jpg"
+                                    value={form.image.startsWith("data:") ? "" : form.image}
+                                    onChange={(e) => handleImageUrlChange(e.target.value)}
+                                />
+                            ) : (
+                                <div
+                                    className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-muted/30 p-4 text-muted-foreground transition-colors hover:border-primary hover:bg-primary/5 hover:text-primary"
+                                    onClick={() => fileInputRef.current?.click()}
+                                >
+                                    <Upload className="h-5 w-5" />
+                                    <p className="text-xs font-medium">Click to upload from device</p>
+                                    <p className="text-xs opacity-60">PNG, JPG, WEBP</p>
+                                </div>
+                            )}
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={handleImageFileUpload}
+                            />
+
+                            {imagePreview && (
+                                <div className="flex items-center gap-3 mt-2">
+                                    <img
+                                        src={imagePreview}
+                                        alt="Preview"
+                                        className="h-12 w-12 rounded-xl object-cover border border-border"
+                                        onError={() => setImagePreview("")}
+                                    />
+                                    <span className="text-xs text-muted-foreground">Preview</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => { setImagePreview(""); setForm({ ...form, image: "" }); }}
+                                        className="ml-auto text-xs text-destructive hover:underline"
+                                    >
+                                        Remove
+                                    </button>
+                                </div>
+                            )}
                         </div>
                         <div>
                             <label className="mb-1 block text-xs font-medium text-muted-foreground">
