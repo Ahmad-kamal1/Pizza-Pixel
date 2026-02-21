@@ -6,13 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-
-interface StoredUser {
-    firstName: string;
-    lastName: string;
-    email: string;
-    password: string;
-}
+import { apiLogin, apiRegister } from "@/lib/api";
 
 const AuthPage = () => {
     const navigate = useNavigate();
@@ -21,6 +15,7 @@ const AuthPage = () => {
 
     const initialTab = searchParams.get("tab") === "signup" ? "signup" : "login";
     const [activeTab, setActiveTab] = useState(initialTab);
+    const [loading, setLoading] = useState(false);
 
     // Login state
     const [loginEmail, setLoginEmail] = useState("");
@@ -39,15 +34,13 @@ const AuthPage = () => {
     // Redirect if already logged in
     useEffect(() => {
         const currentUser = localStorage.getItem("pizzaPixelCurrentUser");
-        if (currentUser) {
-            navigate("/");
-        }
+        if (currentUser) navigate("/");
     }, [navigate]);
 
     const validateEmail = (email: string) =>
         /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
-    const handleLogin = (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         const email = loginEmail.trim();
         const password = loginPassword;
@@ -61,30 +54,27 @@ const AuthPage = () => {
             return;
         }
 
-        const usersJSON = localStorage.getItem("pizzaPixelUsers");
-        const users: StoredUser[] = usersJSON ? JSON.parse(usersJSON) : [];
-        const user = users.find(
-            (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password
-        );
-
-        if (!user) {
-            toast({
-                title: "Invalid credentials",
-                description: "Email or password is incorrect.",
-                variant: "destructive",
-            });
-            return;
+        setLoading(true);
+        try {
+            const user = await apiLogin(email, password);
+            localStorage.setItem("pizzaPixelCurrentUser", JSON.stringify({
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                avatar: user.avatar || "",
+                role: user.role,
+            }));
+            window.dispatchEvent(new Event("pizzaPixelAuthChange"));
+            toast({ title: `Welcome back, ${user.firstName}!` });
+            navigate("/");
+        } catch (err: any) {
+            toast({ title: err.message || "Invalid credentials", variant: "destructive" });
+        } finally {
+            setLoading(false);
         }
-
-        localStorage.setItem(
-            "pizzaPixelCurrentUser",
-            JSON.stringify({ firstName: user.firstName, lastName: user.lastName, email: user.email })
-        );
-        toast({ title: `Welcome back, ${user.firstName}!` });
-        navigate("/");
     };
 
-    const handleSignUp = (e: React.FormEvent) => {
+    const handleSignUp = async (e: React.FormEvent) => {
         e.preventDefault();
         const fName = firstName.trim();
         const lName = lastName.trim();
@@ -101,44 +91,32 @@ const AuthPage = () => {
             return;
         }
         if (password.length < 6) {
-            toast({
-                title: "Password too short",
-                description: "Password must be at least 6 characters.",
-                variant: "destructive",
-            });
+            toast({ title: "Password must be at least 6 characters", variant: "destructive" });
             return;
         }
         if (password !== confirm) {
-            toast({
-                title: "Passwords don't match",
-                description: "Please make sure both passwords are the same.",
-                variant: "destructive",
-            });
+            toast({ title: "Passwords don't match", variant: "destructive" });
             return;
         }
 
-        const usersJSON = localStorage.getItem("pizzaPixelUsers");
-        const users: StoredUser[] = usersJSON ? JSON.parse(usersJSON) : [];
-
-        if (users.some((u) => u.email.toLowerCase() === email.toLowerCase())) {
-            toast({
-                title: "Email already registered",
-                description: "Please use a different email or log in.",
-                variant: "destructive",
-            });
-            return;
+        setLoading(true);
+        try {
+            const user = await apiRegister({ firstName: fName, lastName: lName, email, password });
+            localStorage.setItem("pizzaPixelCurrentUser", JSON.stringify({
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                avatar: "",
+                role: "customer",
+            }));
+            window.dispatchEvent(new Event("pizzaPixelAuthChange"));
+            toast({ title: `Welcome, ${fName}! Your account has been created.` });
+            navigate("/");
+        } catch (err: any) {
+            toast({ title: err.message || "Registration failed", variant: "destructive" });
+        } finally {
+            setLoading(false);
         }
-
-        const newUser: StoredUser = { firstName: fName, lastName: lName, email, password };
-        users.push(newUser);
-        localStorage.setItem("pizzaPixelUsers", JSON.stringify(users));
-        localStorage.setItem(
-            "pizzaPixelCurrentUser",
-            JSON.stringify({ firstName: fName, lastName: lName, email })
-        );
-
-        toast({ title: `Welcome, ${fName}! Your account has been created.` });
-        navigate("/");
     };
 
     return (
@@ -179,13 +157,11 @@ const AuthPage = () => {
                             </TabsTrigger>
                         </TabsList>
 
-                        {/* === LOGIN TAB === */}
+                        {/* LOGIN TAB */}
                         <TabsContent value="login">
                             <form onSubmit={handleLogin} className="space-y-5">
                                 <div className="space-y-2">
-                                    <Label htmlFor="login-email" className="text-sm font-medium text-foreground">
-                                        Email
-                                    </Label>
+                                    <Label htmlFor="login-email">Email</Label>
                                     <Input
                                         id="login-email"
                                         type="email"
@@ -196,9 +172,7 @@ const AuthPage = () => {
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="login-password" className="text-sm font-medium text-foreground">
-                                        Password
-                                    </Label>
+                                    <Label htmlFor="login-password">Password</Label>
                                     <div className="relative">
                                         <Input
                                             id="login-password"
@@ -219,9 +193,10 @@ const AuthPage = () => {
                                 </div>
                                 <Button
                                     type="submit"
+                                    disabled={loading}
                                     className="w-full h-11 bg-primary text-primary-foreground hover:bg-primary/90 font-semibold text-base shadow-lg shadow-primary/20"
                                 >
-                                    Login
+                                    {loading ? "Logging in…" : "Login"}
                                 </Button>
                                 <p className="text-center text-sm text-muted-foreground">
                                     Don't have an account?{" "}
@@ -236,14 +211,12 @@ const AuthPage = () => {
                             </form>
                         </TabsContent>
 
-                        {/* === SIGN UP TAB === */}
+                        {/* SIGN UP TAB */}
                         <TabsContent value="signup">
                             <form onSubmit={handleSignUp} className="space-y-4">
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <Label htmlFor="first-name" className="text-sm font-medium text-foreground">
-                                            First Name
-                                        </Label>
+                                        <Label htmlFor="first-name">First Name</Label>
                                         <Input
                                             id="first-name"
                                             placeholder="John"
@@ -253,9 +226,7 @@ const AuthPage = () => {
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="last-name" className="text-sm font-medium text-foreground">
-                                            Last Name
-                                        </Label>
+                                        <Label htmlFor="last-name">Last Name</Label>
                                         <Input
                                             id="last-name"
                                             placeholder="Doe"
@@ -266,9 +237,7 @@ const AuthPage = () => {
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="signup-email" className="text-sm font-medium text-foreground">
-                                        Email
-                                    </Label>
+                                    <Label htmlFor="signup-email">Email</Label>
                                     <Input
                                         id="signup-email"
                                         type="email"
@@ -279,9 +248,7 @@ const AuthPage = () => {
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="signup-password" className="text-sm font-medium text-foreground">
-                                        Password
-                                    </Label>
+                                    <Label htmlFor="signup-password">Password</Label>
                                     <div className="relative">
                                         <Input
                                             id="signup-password"
@@ -301,9 +268,7 @@ const AuthPage = () => {
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="confirm-password" className="text-sm font-medium text-foreground">
-                                        Confirm Password
-                                    </Label>
+                                    <Label htmlFor="confirm-password">Confirm Password</Label>
                                     <div className="relative">
                                         <Input
                                             id="confirm-password"
@@ -324,9 +289,10 @@ const AuthPage = () => {
                                 </div>
                                 <Button
                                     type="submit"
+                                    disabled={loading}
                                     className="w-full h-11 bg-primary text-primary-foreground hover:bg-primary/90 font-semibold text-base shadow-lg shadow-primary/20"
                                 >
-                                    Create Account
+                                    {loading ? "Creating account…" : "Create Account"}
                                 </Button>
                                 <p className="text-center text-sm text-muted-foreground">
                                     Already have an account?{" "}

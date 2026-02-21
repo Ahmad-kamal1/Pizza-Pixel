@@ -77,5 +77,21 @@ CREATE TABLE IF NOT EXISTS notifications (
 );
 
 -- Initial Admin Setup (Password should be hashed in production)
-INSERT IGNORE INTO users (first_name, last_name, email, password, role) 
+INSERT IGNORE INTO users (first_name, last_name, email, password, role)
 VALUES ('Super', 'Admin', 'admin@pizzapixel.com', 'admin123', 'super_admin');
+
+-- Sample categories
+INSERT IGNORE INTO categories (id, name, emoji, description) VALUES
+(1, 'Pizzas',     '🍕', 'All pizza varieties'),
+(2, 'Burgers',    '🍔', 'Juicy burgers & sliders'),
+(3, 'Rolls',      '🌯', 'Wraps and rolls'),
+(4, 'Sandwiches', '🥪', 'Classic sandwiches'),
+(5, 'Drinks',     '🥤', 'Beverages & shakes'),
+(6, 'Desserts',   '🍰', 'Sweets & treats');
+
+-- Sample menu items
+INSERT IGNORE INTO menu_items (id, category_id, name, description, price, image_url) VALUES
+(1, 1, 'Margherita',    'Classic tomato & mozzarella',       12.99, 'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=400&h=300&fit=crop'),
+(2, 1, 'Pepperoni',     'Loaded with pepperoni slices',       14.99, 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&h=300&fit=crop'),
+(3, 2, 'Classic Burger','Beef patty with lettuce & tomato',  11.99, 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&h=300&fit=crop'),
+(4, 5, 'Lemonade',      'Fresh-squeezed lemonade',            4.99, 'https://images.unsplash.com/photo-1603569283847-aa295f0d016a?w=400&h=300&fit=crop');

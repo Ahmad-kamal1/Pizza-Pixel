@@ -1,6 +1,5 @@
 import { useState, useRef } from "react";
-import { useAdmin } from "@/context/AdminContext";
-import { MenuItem } from "@/data/menuItems";
+import { useAdmin, MenuItem } from "@/context/AdminContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -302,8 +301,8 @@ const AdminItems = () => {
                                     type="button"
                                     onClick={() => setImageTab("url")}
                                     className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${imageTab === "url"
-                                            ? "bg-primary text-primary-foreground"
-                                            : "bg-muted text-muted-foreground hover:text-foreground"
+                                        ? "bg-primary text-primary-foreground"
+                                        : "bg-muted text-muted-foreground hover:text-foreground"
                                         }`}
                                 >
                                     <Link2 className="h-3.5 w-3.5" /> Via URL
@@ -312,8 +311,8 @@ const AdminItems = () => {
                                     type="button"
                                     onClick={() => setImageTab("upload")}
                                     className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${imageTab === "upload"
-                                            ? "bg-primary text-primary-foreground"
-                                            : "bg-muted text-muted-foreground hover:text-foreground"
+                                        ? "bg-primary text-primary-foreground"
+                                        : "bg-muted text-muted-foreground hover:text-foreground"
                                         }`}
                                 >
                                     <Upload className="h-3.5 w-3.5" /> Upload File
