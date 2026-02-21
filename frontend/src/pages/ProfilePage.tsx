@@ -239,8 +239,8 @@ const ProfilePage = () => {
                     </div>
 
                     {/* Avatar upload */}
-                    <div className="space-y-2">
-                        <Label>Profile Photo</Label>
+                    <div className="space-y-4 pt-2">
+                        <Label className="block">Profile Photo</Label>
                         <div className="flex gap-2 mb-2">
                             <button type="button" onClick={() => setImageTab("url")}
                                 className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${imageTab === "url" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}>
@@ -253,7 +253,9 @@ const ProfilePage = () => {
                         </div>
 
                         {imageTab === "url" ? (
-                            <Input placeholder="https://example.com/avatar.jpg" value={avatarUrl} onChange={(e) => handleAvatarUrlChange(e.target.value)} />
+                            <div className="flex flex-col gap-2">
+                                <Input placeholder="https://example.com/avatar.jpg" value={avatarUrl} onChange={(e) => handleAvatarUrlChange(e.target.value)} />
+                            </div>
                         ) : (
                             <div className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-muted/30 p-5 text-muted-foreground transition-colors hover:border-primary hover:bg-primary/5 hover:text-primary"
                                 onClick={() => fileInputRef.current?.click()}>
@@ -264,7 +266,7 @@ const ProfilePage = () => {
                         )}
 
                         {avatarPreview && (
-                            <div className="flex items-center gap-3 mt-2">
+                            <div className="flex items-center gap-3 mt-3">
                                 <img src={avatarPreview} alt="Preview" className="h-12 w-12 rounded-full object-cover border border-border" onError={() => setAvatarPreview("")} />
                                 <span className="text-xs text-muted-foreground">Preview</span>
                                 <button type="button" onClick={() => { setAvatarPreview(""); setAvatarUrl(""); }} className="ml-auto text-xs text-destructive hover:underline">Remove</button>
@@ -272,13 +274,13 @@ const ProfilePage = () => {
                         )}
                     </div>
 
-                    <Button onClick={handleSaveProfile} disabled={saveLoading} className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
+                    <Button onClick={handleSaveProfile} disabled={saveLoading} className="w-full sm:w-auto gap-2 bg-primary text-primary-foreground hover:bg-primary/90 mt-4">
                         <Save className="h-4 w-4" /> {saveLoading ? "Saving…" : "Save Profile"}
                     </Button>
                 </div>
 
                 {/* Change Password */}
-                <div className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-4">
+                <div className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-5 mt-6">
                     <div className="flex items-center gap-2 border-b border-border pb-3">
                         <Key className="h-5 w-5 text-primary" />
                         <h2 className="text-lg font-bold text-foreground">Change Password</h2>
@@ -314,7 +316,7 @@ const ProfilePage = () => {
                         </div>
                     </div>
 
-                    <Button onClick={handleChangePassword} disabled={pwLoading} variant="outline" className="gap-2">
+                    <Button onClick={handleChangePassword} disabled={pwLoading} variant="outline" className="w-full sm:w-auto gap-2 mt-4">
                         <Key className="h-4 w-4" /> {pwLoading ? "Updating…" : "Update Password"}
                     </Button>
                 </div>

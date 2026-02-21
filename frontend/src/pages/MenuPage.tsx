@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Search, X } from "lucide-react";
+import { Search, X, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,7 +16,16 @@ import Header from "@/components/Header";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ProductCard from "@/components/ProductCard";
-import { menuItems, MenuItem } from "@/data/menuItems";
+import { apiGetItems, apiCreateOrder } from "@/lib/api";
+
+interface MenuItem {
+    id: number;
+    name: string;
+    description: string;
+    price: string;
+    image: string;
+    category?: string;
+}
 
 const MenuPage = () => {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -24,11 +33,21 @@ const MenuPage = () => {
     const [search, setSearch] = useState(queryParam);
     const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
     const [isOrderDialogOpen, setIsOrderDialogOpen] = useState(false);
+    const [orderLoading, setOrderLoading] = useState(false);
+    const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+    const [itemsLoading, setItemsLoading] = useState(true);
     const { toast } = useToast();
 
     useEffect(() => {
         setSearch(searchParams.get("q") || "");
     }, [searchParams]);
+
+    useEffect(() => {
+        apiGetItems()
+            .then((data) => setMenuItems(data))
+            .catch(() => toast({ title: "Failed to load menu items", variant: "destructive" }))
+            .finally(() => setItemsLoading(false));
+    }, [toast]);
 
     const filteredItems = menuItems.filter((item) => {
         if (!search.trim()) return true;
@@ -76,14 +95,50 @@ const MenuPage = () => {
             .toFixed(2);
     };
 
-    const handlePlaceOrder = () => {
-        setIsOrderDialogOpen(false);
-        setSelectedItems(new Set());
-        toast({
-            title: "Order Placed Successfully!",
-            description: `Thank you for your order. Total: $${calculateTotal()}`,
-            duration: 5000,
-        });
+    const handlePlaceOrder = async () => {
+        setOrderLoading(true);
+        try {
+            const rawItems = getSelectedItemsDetails();
+            const orderItemsPayload = rawItems.map((item) => ({
+                name: item.name,
+                qty: 1,
+                unitPrice: parseFloat(item.price.replace("$", ""))
+            }));
+
+            // get current user from localStorage
+            let customerName = "Guest User";
+            let customerPhone = "";
+            const sessionData = localStorage.getItem("pizzaPixelCurrentUser");
+            if (sessionData) {
+                const session = JSON.parse(sessionData);
+                customerName = `${session.firstName} ${session.lastName}`;
+                customerPhone = session.phone || "";
+            }
+
+            await apiCreateOrder({
+                customer: customerName,
+                customerPhone: customerPhone,
+                orderItems: orderItemsPayload,
+                total: parseFloat(calculateTotal()),
+                status: "pending",
+            });
+
+            setIsOrderDialogOpen(false);
+            setSelectedItems(new Set());
+            toast({
+                title: "Order Placed Successfully!",
+                description: `Thank you for your order. Total: $${calculateTotal()}`,
+                duration: 5000,
+            });
+        } catch (err: any) {
+            toast({
+                title: "Failed to place order",
+                description: err.message || "An error occurred.",
+                variant: "destructive",
+            });
+        } finally {
+            setOrderLoading(false);
+        }
     };
 
     return (
@@ -143,7 +198,12 @@ const MenuPage = () => {
                     )}
 
                     {/* Items Grid */}
-                    {filteredItems.length > 0 ? (
+                    {itemsLoading ? (
+                        <div className="flex flex-col items-center justify-center py-20 text-center">
+                            <Loader2 className="mb-4 h-12 w-12 animate-spin text-primary/50" />
+                            <h3 className="text-xl font-bold text-foreground">Loading Menu...</h3>
+                        </div>
+                    ) : filteredItems.length > 0 ? (
                         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 pb-20">
                             {filteredItems.map((item, i) => (
                                 <ProductCard
@@ -229,11 +289,12 @@ const MenuPage = () => {
                                 <span className="text-xl font-bold">${calculateTotal()}</span>
                             </div>
                             <DialogFooter className="mt-4 sm:justify-end gap-2">
-                                <Button variant="outline" onClick={() => setIsOrderDialogOpen(false)}>
+                                <Button variant="outline" onClick={() => setIsOrderDialogOpen(false)} disabled={orderLoading}>
                                     Cancel
                                 </Button>
-                                <Button onClick={handlePlaceOrder} className="bg-primary text-primary-foreground hover:bg-primary/90">
-                                    Confirm Order
+                                <Button onClick={handlePlaceOrder} disabled={orderLoading || selectedItems.size === 0} className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2">
+                                    {orderLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+                                    {orderLoading ? "Placing Order..." : "Confirm Order"}
                                 </Button>
                             </DialogFooter>
                         </DialogContent>

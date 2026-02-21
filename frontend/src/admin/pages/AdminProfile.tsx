@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { Camera, Link2, Upload, Save, Key, Eye, EyeOff, UserCircle } from "lucide-react";
+import { Camera, Link2, Upload, Save, Key, Eye, EyeOff, UserCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { apiGetProfile, apiUpdateProfile, apiChangePassword } from "@/lib/api";
 
 interface AdminProfile {
     name: string;
@@ -38,18 +39,44 @@ const AdminProfilePage = () => {
     const [showNew, setShowNew] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
 
+    const [saveLoading, setSaveLoading] = useState(false);
+    const [pwLoading, setPwLoading] = useState(false);
+
     useEffect(() => {
         const stored = localStorage.getItem("pizzaPixelAdminProfile");
-        const p: AdminProfile = stored ? JSON.parse(stored) : DEFAULT_PROFILE;
-        setProfile(p);
-        setForm({
-            name: p.name,
-            email: p.email,
-            role: p.role,
-            phone: p.phone,
-            avatarUrl: p.avatar.startsWith("data:") ? "" : p.avatar,
+        const defaultProfile = stored ? JSON.parse(stored) : DEFAULT_PROFILE;
+        const currentEmail = defaultProfile.email || "admin@pizzapixel.com";
+
+        apiGetProfile(currentEmail).then(p => {
+            const mappedProfile = {
+                name: `${p.firstName} ${p.lastName}`,
+                email: p.email,
+                role: p.role,
+                phone: p.phone,
+                avatar: p.avatar,
+                password: ""
+            };
+            setProfile(mappedProfile);
+            setForm({
+                name: mappedProfile.name,
+                email: mappedProfile.email,
+                role: mappedProfile.role,
+                phone: mappedProfile.phone,
+                avatarUrl: mappedProfile.avatar.startsWith("data:") ? "" : mappedProfile.avatar,
+            });
+            setAvatarPreview(mappedProfile.avatar);
+        }).catch(() => {
+            // Fallback
+            setProfile(defaultProfile);
+            setForm({
+                name: defaultProfile.name,
+                email: defaultProfile.email,
+                role: defaultProfile.role,
+                phone: defaultProfile.phone,
+                avatarUrl: defaultProfile.avatar.startsWith("data:") ? "" : defaultProfile.avatar,
+            });
+            setAvatarPreview(defaultProfile.avatar);
         });
-        setAvatarPreview(p.avatar);
     }, []);
 
     const handleAvatarUrlChange = (url: string) => {
@@ -69,31 +96,45 @@ const AdminProfilePage = () => {
         reader.readAsDataURL(file);
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!form.name.trim()) {
             toast({ title: "Name is required", variant: "destructive" });
             return;
         }
-        const updated: AdminProfile = {
-            ...profile,
-            name: form.name.trim(),
-            email: form.email.trim(),
-            role: form.role.trim(),
-            phone: form.phone.trim(),
-            avatar: avatarPreview,
-        };
-        localStorage.setItem("pizzaPixelAdminProfile", JSON.stringify(updated));
-        setProfile(updated);
-        toast({ title: "Admin profile updated!" });
+        setSaveLoading(true);
+        try {
+            const nameParts = form.name.trim().split(" ");
+            const firstName = nameParts[0];
+            const lastName = nameParts.slice(1).join(" ") || "Admin";
+
+            await apiUpdateProfile(profile.email, {
+                firstName,
+                lastName,
+                phone: form.phone.trim(),
+                avatar: avatarPreview,
+            });
+
+            const updated: AdminProfile = {
+                ...profile,
+                name: form.name.trim(),
+                email: form.email.trim(), // Can't typically change email
+                role: form.role.trim(),
+                phone: form.phone.trim(),
+                avatar: avatarPreview,
+            };
+            localStorage.setItem("pizzaPixelAdminProfile", JSON.stringify(updated));
+            setProfile(updated);
+            toast({ title: "Admin profile updated!" });
+        } catch (err: any) {
+            toast({ title: err.message || "Failed to update profile", variant: "destructive" });
+        } finally {
+            setSaveLoading(false);
+        }
     };
 
-    const handleChangePassword = () => {
+    const handleChangePassword = async () => {
         if (!pwForm.current || !pwForm.newPw || !pwForm.confirm) {
             toast({ title: "Please fill in all password fields", variant: "destructive" });
-            return;
-        }
-        if (pwForm.current !== profile.password) {
-            toast({ title: "Current password is incorrect", variant: "destructive" });
             return;
         }
         if (pwForm.newPw.length < 6) {
@@ -104,11 +145,17 @@ const AdminProfilePage = () => {
             toast({ title: "New passwords don't match", variant: "destructive" });
             return;
         }
-        const updated = { ...profile, password: pwForm.newPw };
-        localStorage.setItem("pizzaPixelAdminProfile", JSON.stringify(updated));
-        setProfile(updated);
-        setPwForm({ current: "", newPw: "", confirm: "" });
-        toast({ title: "Password updated successfully!" });
+
+        setPwLoading(true);
+        try {
+            await apiChangePassword(profile.email, pwForm.current, pwForm.newPw);
+            setPwForm({ current: "", newPw: "", confirm: "" });
+            toast({ title: "Password updated successfully!" });
+        } catch (err: any) {
+            toast({ title: err.message || "Failed to update password", variant: "destructive" });
+        } finally {
+            setPwLoading(false);
+        }
     };
 
     const getInitials = () => {
@@ -222,8 +269,8 @@ const AdminProfilePage = () => {
                             type="button"
                             onClick={() => setImageTab("url")}
                             className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${imageTab === "url"
-                                    ? "bg-primary text-primary-foreground"
-                                    : "bg-muted text-muted-foreground hover:text-foreground"
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-muted text-muted-foreground hover:text-foreground"
                                 }`}
                         >
                             <Link2 className="h-3.5 w-3.5" /> Via URL
@@ -232,8 +279,8 @@ const AdminProfilePage = () => {
                             type="button"
                             onClick={() => setImageTab("upload")}
                             className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${imageTab === "upload"
-                                    ? "bg-primary text-primary-foreground"
-                                    : "bg-muted text-muted-foreground hover:text-foreground"
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-muted text-muted-foreground hover:text-foreground"
                                 }`}
                         >
                             <Upload className="h-3.5 w-3.5" /> Upload File
@@ -279,9 +326,11 @@ const AdminProfilePage = () => {
 
                 <Button
                     onClick={handleSave}
-                    className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+                    disabled={saveLoading}
+                    className="w-full sm:w-auto gap-2 bg-primary text-primary-foreground hover:bg-primary/90 mt-4"
                 >
-                    <Save className="h-4 w-4" /> Save Changes
+                    {saveLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    {saveLoading ? "Saving…" : "Save Changes"}
                 </Button>
             </div>
 
@@ -355,8 +404,9 @@ const AdminProfilePage = () => {
                     </div>
                 </div>
 
-                <Button variant="outline" onClick={handleChangePassword} className="gap-2">
-                    <Key className="h-4 w-4" /> Update Password
+                <Button variant="outline" onClick={handleChangePassword} disabled={pwLoading} className="w-full sm:w-auto gap-2 mt-4">
+                    {pwLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Key className="h-4 w-4" />}
+                    {pwLoading ? "Updating…" : "Update Password"}
                 </Button>
             </div>
         </div>

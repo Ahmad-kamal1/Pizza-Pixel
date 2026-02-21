@@ -104,7 +104,27 @@ export function AdminProvider({ children }: { children: ReactNode }) {
                 setItems(itemsData);
                 setCategories(catsData);
                 setOrders(
-                    ordersData.map((o: any) => ({ ...o, time: new Date(o.time) }))
+                    ordersData.map((o: any) => {
+                        let parsedItems: string[] = [];
+                        if (Array.isArray(o.items)) {
+                            parsedItems = o.items;
+                        } else if (typeof o.items === "string") {
+                            try {
+                                const parsed = JSON.parse(o.items);
+                                parsedItems = Array.isArray(parsed) ? parsed : [o.items];
+                            } catch (_) {
+                                parsedItems = [o.items];
+                            }
+                        } else if (o.orderItems && Array.isArray(o.orderItems)) {
+                            parsedItems = o.orderItems.map((oi: any) => oi.name);
+                        }
+
+                        return {
+                            ...o,
+                            items: parsedItems,
+                            time: new Date(o.time)
+                        };
+                    })
                 );
                 setNotifications(
                     notifsData.map((n: any) => ({ ...n, time: new Date(n.time) }))
@@ -126,7 +146,27 @@ export function AdminProvider({ children }: { children: ReactNode }) {
                     apiGetOrders(),
                     apiGetNotifications(),
                 ]);
-                setOrders(newOrders.map((o: any) => ({ ...o, time: new Date(o.time) })));
+                setOrders(newOrders.map((o: any) => {
+                    let parsedItems: string[] = [];
+                    if (Array.isArray(o.items)) {
+                        parsedItems = o.items;
+                    } else if (typeof o.items === "string") {
+                        try {
+                            const parsed = JSON.parse(o.items);
+                            parsedItems = Array.isArray(parsed) ? parsed : [o.items];
+                        } catch (_) {
+                            parsedItems = [o.items];
+                        }
+                    } else if (o.orderItems && Array.isArray(o.orderItems)) {
+                        parsedItems = o.orderItems.map((oi: any) => oi.name);
+                    }
+
+                    return {
+                        ...o,
+                        items: parsedItems,
+                        time: new Date(o.time)
+                    };
+                }));
                 setNotifications(newNotifs.map((n: any) => ({ ...n, time: new Date(n.time) })));
             } catch (_) { }
         }, 30000);

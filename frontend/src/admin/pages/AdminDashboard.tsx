@@ -168,14 +168,14 @@ const AdminDashboard = () => {
                                     className="border-b border-border/50 transition-colors hover:bg-muted/30 last:border-0"
                                 >
                                     <td className="px-6 py-3 font-mono font-medium text-foreground">
-                                        #{order.id}
+                                        #{order.id || (order as any).invoiceNumber}
                                     </td>
                                     <td className="px-6 py-3 text-foreground">{order.customer}</td>
                                     <td className="px-6 py-3 text-muted-foreground">
                                         {order.items.join(", ")}
                                     </td>
                                     <td className="px-6 py-3 font-semibold text-foreground">
-                                        ${order.total.toFixed(2)}
+                                        ${Number(order.total).toFixed(2)}
                                     </td>
                                     <td className="px-6 py-3 text-muted-foreground">
                                         {formatTime(order.time)}
