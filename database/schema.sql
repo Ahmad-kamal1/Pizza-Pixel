@@ -76,6 +76,17 @@ CREATE TABLE IF NOT EXISTS notifications (
     FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
 );
 
+-- Contact Messages Table
+CREATE TABLE IF NOT EXISTS contact_messages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(150) NOT NULL,
+    message TEXT NOT NULL,
+    is_read BOOLEAN DEFAULT FALSE,
+    reply TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Initial Admin Setup (Password should be hashed in production)
 INSERT IGNORE INTO users (first_name, last_name, email, password, role)
 VALUES ('Super', 'Admin', 'admin@pizzapixel.com', 'admin123', 'super_admin');

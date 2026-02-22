@@ -7,6 +7,7 @@ const categoriesRoutes = require("./routes/categories");
 const itemsRoutes = require("./routes/items");
 const ordersRoutes = require("./routes/orders");
 const profileRoutes = require("./routes/profile");
+const contactRoutes = require("./routes/contact");
 
 const app = express();
 
@@ -20,6 +21,7 @@ app.use("/api/categories", categoriesRoutes);
 app.use("/api/items", itemsRoutes);
 app.use("/api/orders", ordersRoutes);
 app.use("/api/profile", profileRoutes);
+app.use("/api/contact", contactRoutes);
 
 // Health check
 app.get("/api/health", (req, res) => {

@@ -1,7 +1,19 @@
-import { menuItems } from "@/data/menuItems";
+import { useEffect, useState } from "react";
+import { apiGetItems } from "@/lib/api";
 import ProductCard from "@/components/ProductCard";
+import { MenuItem } from "@/context/AdminContext"; // Reusing the type
 
 const ProductsSection = () => {
+  const [items, setItems] = useState<MenuItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    apiGetItems()
+      .then((data) => setItems(data))
+      .catch((err) => console.error("Failed to load products", err))
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
     <section id="services" className="py-16 md:py-24">
       <div className="container mx-auto px-4">
@@ -13,11 +25,18 @@ const ProductsSection = () => {
             From classic pizzas to fresh sides — something for everyone.
           </p>
         </div>
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {menuItems.map((item, i) => (
-            <ProductCard key={item.id} item={item} index={i} />
-          ))}
-        </div>
+
+        {loading ? (
+          <div className="flex justify-center p-10"><span className="animate-spin text-2xl">🍕</span></div>
+        ) : items.length === 0 ? (
+          <div className="text-center text-muted-foreground">No menu items available.</div>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {items.map((item, i) => (
+              <ProductCard key={item.id} item={item} index={i} />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );

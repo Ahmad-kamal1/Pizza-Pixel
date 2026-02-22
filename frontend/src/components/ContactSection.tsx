@@ -2,14 +2,16 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Send } from "lucide-react";
+import { Send, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { apiSubmitContact } from "@/lib/api";
 
 const ContactSection = () => {
   const { toast } = useToast();
   const [form, setForm] = useState({ name: "", email: "", message: "" });
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const name = form.name.trim();
     const email = form.email.trim();
@@ -24,8 +26,16 @@ const ContactSection = () => {
       return;
     }
 
-    toast({ title: "Message sent!", description: "We'll get back to you soon." });
-    setForm({ name: "", email: "", message: "" });
+    setLoading(true);
+    try {
+      await apiSubmitContact({ name, email, message });
+      toast({ title: "Message sent!", description: "We'll get back to you soon." });
+      setForm({ name: "", email: "", message: "" });
+    } catch (err: any) {
+      toast({ title: "Failed to send", description: err.message || "Something went wrong.", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -81,9 +91,9 @@ const ContactSection = () => {
               onChange={(e) => setForm({ ...form, message: e.target.value })}
             />
           </div>
-          <Button type="submit" className="w-full gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
-            <Send className="h-4 w-4" />
-            Send Message
+          <Button type="submit" disabled={loading} className="w-full gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {loading ? "Sending..." : "Send Message"}
           </Button>
         </form>
       </div>

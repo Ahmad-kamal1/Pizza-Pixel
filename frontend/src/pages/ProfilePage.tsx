@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { User, Camera, Link2, Upload, Save, Key, Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { User, Camera, Link2, Upload, Save, Key, Eye, EyeOff, ArrowLeft, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { apiGetProfile, apiUpdateProfile, apiChangePassword } from "@/lib/api";
+import { apiGetProfile, apiUpdateProfile, apiChangePassword, apiGetUserMessages } from "@/lib/api";
 
 interface CurrentUser {
     firstName: string;
@@ -41,6 +41,10 @@ const ProfilePage = () => {
     const [showNew, setShowNew] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
 
+    // Messages state
+    const [userMessages, setUserMessages] = useState<any[]>([]);
+    const [msgsLoading, setMsgsLoading] = useState(true);
+
     useEffect(() => {
         const sessionData = localStorage.getItem("pizzaPixelCurrentUser");
         if (!sessionData) {
@@ -74,6 +78,13 @@ const ProfilePage = () => {
                 setAvatarPreview(session.avatar || "");
                 setAvatarUrl(session.avatar?.startsWith("data:") ? "" : session.avatar || "");
             });
+
+        // Fetch user messages/notifications
+        apiGetUserMessages(session.email)
+            .then((msgs) => setUserMessages(msgs))
+            .catch((err) => console.error("Failed to load user messages", err))
+            .finally(() => setMsgsLoading(false));
+
     }, [navigate]);
 
     const handleAvatarUrlChange = (url: string) => {
@@ -319,6 +330,45 @@ const ProfilePage = () => {
                     <Button onClick={handleChangePassword} disabled={pwLoading} variant="outline" className="w-full sm:w-auto gap-2 mt-4">
                         <Key className="h-4 w-4" /> {pwLoading ? "Updating…" : "Update Password"}
                     </Button>
+                </div>
+
+                {/* My Messages / Notifications */}
+                <div className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-5 mt-6">
+                    <div className="flex items-center gap-2 border-b border-border pb-3">
+                        <MessageSquare className="h-5 w-5 text-primary" />
+                        <h2 className="text-lg font-bold text-foreground">My Messages / Notifications</h2>
+                    </div>
+
+                    {msgsLoading ? (
+                        <div className="flex justify-center p-4">
+                            <span className="animate-spin text-2xl">🍕</span>
+                        </div>
+                    ) : userMessages.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-4">You haven't sent any messages yet.</p>
+                    ) : (
+                        <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
+                            {userMessages.map((msg) => (
+                                <div key={msg.id} className="rounded-xl border border-border bg-muted/20 p-4 space-y-3">
+                                    <div>
+                                        <p className="text-xs text-muted-foreground mb-1">
+                                            You wrote on {new Date(msg.time).toLocaleDateString()}:
+                                        </p>
+                                        <p className="text-sm text-foreground">{msg.message}</p>
+                                    </div>
+                                    {msg.reply ? (
+                                        <div className="rounded-lg bg-primary/10 p-3 border border-primary/20">
+                                            <p className="text-xs font-semibold text-primary mb-1">Admin Reply:</p>
+                                            <p className="text-sm text-foreground whitespace-pre-wrap">{msg.reply}</p>
+                                        </div>
+                                    ) : (
+                                        <div className="rounded-lg bg-muted/50 p-3 border border-border border-dashed">
+                                            <p className="text-xs text-muted-foreground italic">Waiting for admin reply...</p>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

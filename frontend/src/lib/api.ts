@@ -83,3 +83,17 @@ export const apiGetNotifications = () => request("/orders/notifications");
 
 export const apiMarkNotificationsRead = () =>
     request("/orders/notifications/mark-read", { method: "POST" });
+
+// ── Contact Messages ──────────────────────────────────────
+export const apiSubmitContact = (payload: { name: string; email: string; message: string }) =>
+    request("/contact", { method: "POST", body: JSON.stringify(payload) });
+
+export const apiGetContactMessages = () => request("/contact");
+
+export const apiGetUserMessages = (email: string) => request(`/contact/user/${encodeURIComponent(email)}`);
+
+export const apiReplyToMessage = (id: number, reply: string) =>
+    request(`/contact/${id}/reply`, { method: "PUT", body: JSON.stringify({ reply }) });
+
+export const apiMarkMessageRead = (id: number) =>
+    request(`/contact/${id}/read`, { method: "PUT" });

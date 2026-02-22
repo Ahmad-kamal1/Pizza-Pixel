@@ -1,5 +1,6 @@
 import { Bell, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -52,17 +53,27 @@ const NotificationBell = () => {
                             <p className="text-xs text-muted-foreground">{unreadCount} unread</p>
                         )}
                     </div>
-                    {unreadCount > 0 && (
+                    <div className="flex items-center gap-1">
+                        {unreadCount > 0 && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={markAllRead}
+                                className="h-7 gap-1 text-xs text-primary hover:text-primary/80"
+                            >
+                                <Check className="h-3 w-3" />
+                                Mark all read
+                            </Button>
+                        )}
                         <Button
                             variant="ghost"
                             size="sm"
-                            onClick={markAllRead}
-                            className="h-7 gap-1 text-xs text-primary hover:text-primary/80"
+                            asChild
+                            className="h-7 text-xs text-primary hover:text-primary/80"
                         >
-                            <Check className="h-3 w-3" />
-                            Mark all read
+                            <Link to="/admin/notifications">View all</Link>
                         </Button>
-                    )}
+                    </div>
                 </div>
 
                 {/* Notification list */}
