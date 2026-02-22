@@ -1,5 +1,5 @@
-// Centralised API base URL — change this if your backend runs on a different port
-export const API_BASE = "http://localhost:5000/api";
+// Relative path — Vite's dev proxy forwards /api/* to localhost:5000
+export const API_BASE = "/api";
 
 async function request(path: string, options: RequestInit = {}): Promise<any> {
     const res = await fetch(`${API_BASE}${path}`, {
@@ -73,8 +73,9 @@ export const apiGetOrders = () => request("/orders");
 export const apiCreateOrder = (order: {
     customer: string; customerPhone?: string;
     orderItems: { name: string; qty: number; unitPrice: number }[];
-    total: number; status?: string;
+    total: number; status?: string; isOnline?: boolean;
 }) => request("/orders", { method: "POST", body: JSON.stringify(order) });
+
 
 export const apiUpdateOrderStatus = (id: number, status: string) =>
     request(`/orders/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) });

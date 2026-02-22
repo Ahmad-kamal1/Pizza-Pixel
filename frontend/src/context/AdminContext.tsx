@@ -91,6 +91,38 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
 
+    // Safely parse an order row coming from the API
+    const parseOrder = (o: any): Order => {
+        // Parse orderItems: MySQL stores JSON as a string
+        let orderItems: { name: string; qty: number; unitPrice: number }[] = [];
+        if (Array.isArray(o.orderItems)) {
+            orderItems = o.orderItems;
+        } else if (typeof o.orderItems === "string") {
+            try { orderItems = JSON.parse(o.orderItems); } catch (_) { orderItems = []; }
+        }
+
+        // Parse items (display names list)
+        let parsedItems: string[] = [];
+        if (Array.isArray(o.items)) {
+            parsedItems = o.items;
+        } else if (typeof o.items === "string") {
+            try {
+                const p = JSON.parse(o.items);
+                parsedItems = Array.isArray(p) ? p : [o.items];
+            } catch (_) { parsedItems = [o.items]; }
+        } else {
+            parsedItems = orderItems.map((oi) => oi.name);
+        }
+
+        return {
+            ...o,
+            items: parsedItems,
+            orderItems,
+            total: Number(o.total) || 0,
+            time: o.time instanceof Date ? o.time : new Date(o.time),
+        };
+    };
+
     // Load everything from the API on mount
     useEffect(() => {
         const loadAll = async () => {
@@ -103,29 +135,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
                 ]);
                 setItems(itemsData);
                 setCategories(catsData);
-                setOrders(
-                    ordersData.map((o: any) => {
-                        let parsedItems: string[] = [];
-                        if (Array.isArray(o.items)) {
-                            parsedItems = o.items;
-                        } else if (typeof o.items === "string") {
-                            try {
-                                const parsed = JSON.parse(o.items);
-                                parsedItems = Array.isArray(parsed) ? parsed : [o.items];
-                            } catch (_) {
-                                parsedItems = [o.items];
-                            }
-                        } else if (o.orderItems && Array.isArray(o.orderItems)) {
-                            parsedItems = o.orderItems.map((oi: any) => oi.name);
-                        }
-
-                        return {
-                            ...o,
-                            items: parsedItems,
-                            time: new Date(o.time)
-                        };
-                    })
-                );
+                setOrders(ordersData.map(parseOrder));
                 setNotifications(
                     notifsData.map((n: any) => ({ ...n, time: new Date(n.time) }))
                 );
@@ -146,27 +156,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
                     apiGetOrders(),
                     apiGetNotifications(),
                 ]);
-                setOrders(newOrders.map((o: any) => {
-                    let parsedItems: string[] = [];
-                    if (Array.isArray(o.items)) {
-                        parsedItems = o.items;
-                    } else if (typeof o.items === "string") {
-                        try {
-                            const parsed = JSON.parse(o.items);
-                            parsedItems = Array.isArray(parsed) ? parsed : [o.items];
-                        } catch (_) {
-                            parsedItems = [o.items];
-                        }
-                    } else if (o.orderItems && Array.isArray(o.orderItems)) {
-                        parsedItems = o.orderItems.map((oi: any) => oi.name);
-                    }
-
-                    return {
-                        ...o,
-                        items: parsedItems,
-                        time: new Date(o.time)
-                    };
-                }));
+                setOrders(newOrders.map(parseOrder));
                 setNotifications(newNotifs.map((n: any) => ({ ...n, time: new Date(n.time) })));
             } catch (_) { }
         }, 30000);

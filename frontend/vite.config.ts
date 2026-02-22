@@ -10,6 +10,14 @@ export default defineConfig({
     hmr: {
       overlay: false,
     },
+    proxy: {
+      // Forward every /api request to the Express backend on port 5000
+      "/api": {
+        target: "http://localhost:5000",
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
   plugins: [react()],
   resolve: {

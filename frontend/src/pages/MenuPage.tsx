@@ -121,7 +121,9 @@ const MenuPage = () => {
                 orderItems: orderItemsPayload,
                 total: parseFloat(calculateTotal()),
                 status: "pending",
+                isOnline: true,
             });
+
 
             setIsOrderDialogOpen(false);
             setSelectedItems(new Set());

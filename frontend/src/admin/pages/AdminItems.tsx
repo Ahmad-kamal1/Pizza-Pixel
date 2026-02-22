@@ -22,6 +22,7 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Plus, Pencil, Trash2, Search, Package, Link2, Upload } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const emptyForm = {
     name: "",
@@ -42,6 +43,7 @@ const AdminItems = () => {
     const [imageTab, setImageTab] = useState<"url" | "upload">("url");
     const [imagePreview, setImagePreview] = useState("");
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const { toast } = useToast();
 
     const handleImageUrlChange = (url: string) => {
         setForm((f) => ({ ...f, image: url }));
@@ -90,7 +92,7 @@ const AdminItems = () => {
         setFormOpen(true);
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!form.name.trim() || !form.price.trim()) {
             setFormError("Name and Price are required.");
             return;
@@ -103,13 +105,24 @@ const AdminItems = () => {
             image:
                 form.image.trim() ||
                 "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=400&h=300&fit=crop",
+            category: form.category || "Pizzas",
         };
-        if (editing) {
-            editItem({ ...editing, ...payload });
-        } else {
-            addItem(payload);
+
+
+        try {
+            if (editing) {
+                await editItem({ ...editing, ...payload, category: form.category || "Pizzas" });
+                toast({ title: "Item updated successfully" });
+            } else {
+                await addItem(payload);
+                toast({ title: "Item added successfully" });
+            }
+
+            setFormOpen(false);
+        } catch (err: any) {
+            console.error(err);
+            setFormError(err.message || "Failed to save item. Please check your connection.");
         }
-        setFormOpen(false);
     };
 
     return (

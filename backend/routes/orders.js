@@ -8,7 +8,8 @@ router.get("/", async (req, res) => {
         const [orders] = await db.query(
             `SELECT o.id, o.invoice_number AS invoiceNumber, o.customer_name AS customer,
               o.customer_phone AS customerPhone, o.total_amount AS total,
-              o.status, o.created_at AS time
+              o.status, o.created_at AS time,
+              IFNULL(o.is_online, 0) AS isOnline
        FROM orders o ORDER BY o.created_at DESC`
         );
 
@@ -32,13 +33,14 @@ router.get("/", async (req, res) => {
     }
 });
 
+
 // POST /api/orders  — create a new order (manual or from checkout)
 router.post("/", async (req, res) => {
     const conn = await db.getConnection();
     try {
         await conn.beginTransaction();
 
-        const { customer, customerPhone, orderItems, total, status } = req.body;
+        const { customer, customerPhone, orderItems, total, status, isOnline } = req.body;
         if (!customer || !orderItems || !orderItems.length)
             return res.status(400).json({ error: "customer and orderItems required" });
 
@@ -48,12 +50,24 @@ router.post("/", async (req, res) => {
         const nextId = (nextIdRow[0][0].maxId || 1000) + 1;
         const invoiceNumber = `INV-${nextId}`;
 
-        const [result] = await conn.query(
-            `INSERT INTO orders (invoice_number, customer_name, customer_phone, total_amount, status)
+        // Try inserting with is_online; fall back if column doesn't exist yet
+        let orderId;
+        try {
+            const [result] = await conn.query(
+                `INSERT INTO orders (invoice_number, customer_name, customer_phone, total_amount, status, is_online)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+                [invoiceNumber, customer, customerPhone || "", total, status || "pending", isOnline ? 1 : 0]
+            );
+            orderId = result.insertId;
+        } catch (_) {
+            // Column may not exist yet — insert without it
+            const [result] = await conn.query(
+                `INSERT INTO orders (invoice_number, customer_name, customer_phone, total_amount, status)
        VALUES (?, ?, ?, ?, ?)`,
-            [invoiceNumber, customer, customerPhone || "", total, status || "pending"]
-        );
-        const orderId = result.insertId;
+                [invoiceNumber, customer, customerPhone || "", total, status || "pending"]
+            );
+            orderId = result.insertId;
+        }
 
         // Resolve item names to IDs and insert line items
         for (const item of orderItems) {
@@ -61,7 +75,6 @@ router.post("/", async (req, res) => {
                 "SELECT id FROM menu_items WHERE name=? LIMIT 1",
                 [item.name]
             );
-            // Use found id or fall back to first item
             const menuItemId = rows.length ? rows[0].id : 1;
             await conn.query(
                 "INSERT INTO order_items (order_id, menu_item_id, quantity, unit_price) VALUES (?,?,?,?)",
@@ -72,7 +85,7 @@ router.post("/", async (req, res) => {
         // Insert notification
         await conn.query(
             "INSERT INTO notifications (order_id, message) VALUES (?, ?)",
-            [orderId, `New order #${orderId} from ${customer} — $${total}`]
+            [orderId, `New ${isOnline ? 'online' : 'in-store'} order #${orderId} from ${customer} — $${total}`]
         );
 
         await conn.commit();
@@ -86,6 +99,7 @@ router.post("/", async (req, res) => {
             items: orderItems.map((i) => i.name),
             total,
             status: status || "pending",
+            isOnline: isOnline ? 1 : 0,
             time: new Date(),
         });
     } catch (err) {
@@ -96,6 +110,7 @@ router.post("/", async (req, res) => {
         conn.release();
     }
 });
+
 
 // PATCH /api/orders/:id/status
 router.patch("/:id/status", async (req, res) => {

@@ -11,8 +11,8 @@ const contactRoutes = require("./routes/contact");
 
 const app = express();
 
-// Allow requests from the Vite dev server
-app.use(cors({ origin: ["http://localhost:5173", "http://localhost:8080"] }));
+// Allow requests from anywhere (vital for viewing across a local network)
+app.use(cors({ origin: "*" }));
 app.use(express.json({ limit: "10mb" })); // 10mb to support base64 image uploads
 
 // Routes

@@ -22,6 +22,7 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Plus, Pencil, Trash2, FolderOpen, Link2, Upload } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const emptyForm = { name: "", emoji: "🍕", description: "", image: "" };
 
@@ -37,6 +38,7 @@ const AdminCategories = () => {
     const [imageTab, setImageTab] = useState<"url" | "upload">("url");
     const [imagePreview, setImagePreview] = useState("");
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const { toast } = useToast();
 
     const handleImageUrlChange = (url: string) => {
         setForm((f) => ({ ...f, image: url }));
@@ -76,7 +78,7 @@ const AdminCategories = () => {
         setFormOpen(true);
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!form.name.trim()) {
             setFormError("Category name is required.");
             return;
@@ -87,12 +89,20 @@ const AdminCategories = () => {
             description: form.description.trim(),
             image: imagePreview,
         };
-        if (editing) {
-            editCategory({ ...editing, ...payload });
-        } else {
-            addCategory(payload);
+
+        try {
+            if (editing) {
+                await editCategory({ ...editing, ...payload });
+                toast({ title: "Category updated successfully" });
+            } else {
+                await addCategory(payload);
+                toast({ title: "Category added successfully" });
+            }
+            setFormOpen(false);
+        } catch (err: any) {
+            console.error(err);
+            setFormError(err.message || "Failed to save category. Please check your connection.");
         }
-        setFormOpen(false);
     };
 
     return (

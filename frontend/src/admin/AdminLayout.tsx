@@ -1,6 +1,6 @@
-import { useState } from "react";
+import React, { Component, ReactNode, useState } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
-import { Menu, Pizza, LogOut, User } from "lucide-react";
+import { Menu, Pizza, LogOut, User, AlertTriangle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
     DropdownMenu,
@@ -12,6 +12,46 @@ import {
 import AdminSidebar from "./AdminSidebar";
 import NotificationBell from "./components/NotificationBell";
 
+// ─── Error Boundary ────────────────────────────────────────────────────────────
+class AdminErrorBoundary extends Component<
+    { children: ReactNode },
+    { hasError: boolean; message: string }
+> {
+    constructor(props: { children: ReactNode }) {
+        super(props);
+        this.state = { hasError: false, message: "" };
+    }
+    static getDerivedStateFromError(error: Error) {
+        return { hasError: true, message: error.message };
+    }
+    render() {
+        if (this.state.hasError) {
+            return (
+                <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 p-8 text-center">
+                    <div className="rounded-full bg-destructive/10 p-5">
+                        <AlertTriangle className="h-10 w-10 text-destructive" />
+                    </div>
+                    <h2 className="text-xl font-bold text-foreground">Something went wrong</h2>
+                    <p className="text-sm text-muted-foreground max-w-sm">
+                        {this.state.message || "An unexpected error occurred in this section."}
+                    </p>
+                    <Button
+                        className="gap-2"
+                        onClick={() => {
+                            this.setState({ hasError: false, message: "" });
+                            window.location.reload();
+                        }}
+                    >
+                        <RefreshCw className="h-4 w-4" /> Reload Page
+                    </Button>
+                </div>
+            );
+        }
+        return this.props.children;
+    }
+}
+
+// ─── Layout ────────────────────────────────────────────────────────────────────
 const AdminLayout = () => {
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const navigate = useNavigate();
@@ -78,9 +118,11 @@ const AdminLayout = () => {
                     </div>
                 </header>
 
-                {/* Page Content */}
+                {/* Page Content — wrapped in error boundary */}
                 <main className="flex-1 p-6">
-                    <Outlet />
+                    <AdminErrorBoundary>
+                        <Outlet />
+                    </AdminErrorBoundary>
                 </main>
             </div>
         </div>
